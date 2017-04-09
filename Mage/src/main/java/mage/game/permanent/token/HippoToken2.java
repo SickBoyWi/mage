@@ -26,58 +26,28 @@
 * or implied, of BetaSteward_at_googlemail.com.
 */
 
-package mage.client.deckeditor.table;
+package mage.game.permanent.token;
 
+import mage.MageInt;
 import mage.constants.CardType;
-import mage.cards.MageCard;
-import mage.constants.SuperType;
-import mage.view.CardView;
+import mage.util.RandomUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Helper methods for {@link MageCard}.
- * 
- * @author nantuko
+ * @author Stravant
  */
-public final class CardHelper {
-    private CardHelper() {
+public class HippoToken2 extends Token {
+
+    public HippoToken2() {
+        super("Hippo", "3/3 green Hippo creature token");
+        cardType.add(CardType.CREATURE);
+        color.setGreen(true);
+        subtype.add("Centaur");
+        power = new MageInt(3);
+        toughness = new MageInt(3);
     }
 
-    public static String getColor(CardView c) {
-        if (c.getColor().getColorCount() == 0) return "Colorless";
-        else if (c.getColor().getColorCount() > 1) return "Gold";
-        else if (c.getColor().isBlack()) return "Black";
-        else if (c.getColor().isBlue()) return "Blue";
-        else if (c.getColor().isWhite()) return "White";
-        else if (c.getColor().isGreen()) return "Green";
-        else if (c.getColor().isRed()) return "Red";
-        return "";
-    }
-
-    public static String getType(CardView c) {
-        StringBuilder type = new StringBuilder();
-        for (SuperType superType : c.getSuperTypes()) {
-            type.append(superType.toString());
-            type.append(' ');
-        }
-        for (CardType cardType : c.getCardTypes()) {
-            type.append(cardType.toString());
-            type.append(' ');
-        }
-        if (!c.getSubTypes().isEmpty()) {
-            type.append("- ");
-            for (String subType : c.getSubTypes()) {
-                type.append(subType);
-                type.append(' ');
-            }
-        }
-        if (type.length() > 0) {
-            // remove trailing space
-            type.deleteCharAt(type.length() - 1);
-        }
-        return type.toString();
-    }
-
-    public static boolean isCreature(CardView c) {
-        return c.getCardTypes().contains(CardType.CREATURE);
-    }
 }

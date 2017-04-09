@@ -25,61 +25,36 @@
  *  authors and should not be interpreted as representing official policies, either expressed
  *  or implied, of BetaSteward_at_googlemail.com.
  */
-package mage.abilities.condition.common;
+package mage.cards.s;
 
 import java.util.UUID;
-import mage.abilities.Ability;
-import mage.abilities.condition.Condition;
-import mage.game.Game;
-import mage.players.Player;
-import mage.players.PlayerList;
+import mage.abilities.effects.common.counter.DistributeCountersEffect;
+import mage.cards.CardImpl;
+import mage.cards.CardSetInfo;
+import mage.constants.CardType;
+import mage.counters.CounterType;
+import mage.target.common.TargetCreaturePermanentAmount;
 
 /**
  *
- * @author maurer.it_at_gmail.com
+ * @author fireshoes
  */
-public class TenOrLessLifeCondition implements Condition {
+public class SplendidAgony extends CardImpl {
 
-    public enum CheckType { AN_OPPONENT, CONTROLLER, TARGET_OPPONENT, EACH_PLAYER }
+    public SplendidAgony(UUID ownerId, CardSetInfo setInfo) {
+        super(ownerId, setInfo, new CardType[]{CardType.INSTANT}, "{2}{B}");
 
-    private final CheckType type;
+        // Distribute two -1/-1 counters among one or two target creatures.
+        getSpellAbility().addEffect(new DistributeCountersEffect(CounterType.M1M1, 2, false, "one or two target creatures you control"));
+        getSpellAbility().addTarget(new TargetCreaturePermanentAmount(2));
+    }
 
-    public TenOrLessLifeCondition ( CheckType type ) {
-        this.type = type;
+    public SplendidAgony(final SplendidAgony card) {
+        super(card);
     }
 
     @Override
-    public boolean apply(Game game, Ability source) {
-        boolean conditionApplies = false;
-
-        switch ( this.type ) {
-            case AN_OPPONENT:
-                for ( UUID opponentUUID : game.getOpponents(source.getControllerId()) ) {
-                    conditionApplies |= game.getPlayer(opponentUUID).getLife() <= 10;
-                }
-                break;
-            case CONTROLLER:
-                conditionApplies |= game.getPlayer(source.getControllerId()).getLife() <= 10;
-                break;
-            case TARGET_OPPONENT:
-                //TODO: Implement this.
-                break;
-            case EACH_PLAYER:
-                int maxLife = 0;
-                PlayerList playerList = game.getState().getPlayersInRange(source.getControllerId(), game);
-                for ( UUID pid : playerList ) {
-                    Player p = game.getPlayer(pid);
-                    if (p != null) {
-                        if (maxLife < p.getLife()) {
-                        maxLife = p.getLife();
-                        }
-                    }
-                }
-                conditionApplies |= maxLife <= 10;
-                break;
-        }
-
-        return conditionApplies;
+    public SplendidAgony copy() {
+        return new SplendidAgony(this);
     }
-
 }

@@ -29,12 +29,13 @@ package mage.view;
 
 import mage.MageObject;
 import mage.ObjectColor;
+import mage.abilities.Abilities;
+import mage.abilities.Ability;
 import mage.abilities.Mode;
 import mage.abilities.SpellAbility;
 import mage.abilities.costs.mana.ManaCosts;
-import mage.cards.Card;
-import mage.cards.FrameStyle;
-import mage.cards.SplitCard;
+import mage.abilities.keyword.AftermathAbility;
+import mage.cards.*;
 import mage.constants.*;
 import mage.counters.Counter;
 import mage.counters.CounterType;
@@ -99,9 +100,13 @@ public class CardView extends SimpleCardView {
     protected String leftSplitName;
     protected ManaCosts leftSplitCosts;
     protected List<String> leftSplitRules;
+    protected String leftSplitTypeLine;
     protected String rightSplitName;
     protected ManaCosts rightSplitCosts;
     protected List<String> rightSplitRules;
+    protected String rightSplitTypeLine;
+
+    protected ArtRect artRect = ArtRect.NORMAL;
 
     protected List<UUID> targets;
 
@@ -179,14 +184,17 @@ public class CardView extends SimpleCardView {
 
         this.alternateName = cardView.alternateName;
         this.originalName = cardView.originalName;
+        this.artRect = cardView.artRect;
 
         this.isSplitCard = cardView.isSplitCard;
         this.leftSplitName = cardView.leftSplitName;
         this.leftSplitCosts = cardView.leftSplitCosts;
         this.leftSplitRules = null;
+        this.leftSplitTypeLine = cardView.leftSplitTypeLine;
         this.rightSplitName = cardView.rightSplitName;
         this.rightSplitCosts = cardView.rightSplitCosts;
         this.rightSplitRules = null;
+        this.rightSplitTypeLine = cardView.rightSplitTypeLine;
 
         this.targets = null;
 
@@ -208,27 +216,42 @@ public class CardView extends SimpleCardView {
     }
 
     /**
-     *
      * @param card
      * @param game
      * @param controlled is the card view created for the card controller - used
-     * for morph / face down cards to know which player may see information for
-     * the card
+     *                   for morph / face down cards to know which player may see information for
+     *                   the card
      */
     public CardView(Card card, Game game, boolean controlled) {
         this(card, game, controlled, false, false);
     }
 
+    private static String getCardTypeLine(Game game, Card card) {
+        StringBuilder sbType = new StringBuilder();
+        for (SuperType superType : card.getSuperType()) {
+            sbType.append(superType).append(' ');
+        }
+        for (CardType cardType : card.getCardType()) {
+            sbType.append(cardType.toString()).append(' ');
+        }
+        if (!card.getSubtype(game).isEmpty()) {
+            sbType.append("- ");
+            for (String subType : card.getSubtype(game)) {
+                sbType.append(subType).append(' ');
+            }
+        }
+        return sbType.toString();
+    }
+
     /**
-     *
      * @param card
      * @param game
-     * @param controlled is the card view created for the card controller - used
-     * for morph / face down cards to know which player may see information for
-     * the card
+     * @param controlled       is the card view created for the card controller - used
+     *                         for morph / face down cards to know which player may see information for
+     *                         the card
      * @param showFaceDownCard if true and the card is not on the battlefield,
-     * also a face down card is shown in the view, face down cards will be shown
-     * @param storeZone if true the card zone will be set in the zone attribute.
+     *                         also a face down card is shown in the view, face down cards will be shown
+     * @param storeZone        if true the card zone will be set in the zone attribute.
      */
     public CardView(Card card, Game game, boolean controlled, boolean showFaceDownCard, boolean storeZone) {
         super(card.getId(), card.getExpansionSetCode(), card.getCardNumber(), card.getUsesVariousArt(), card.getTokenSetCode(), game != null, card.getTokenDescriptor());
@@ -298,9 +321,11 @@ public class CardView extends SimpleCardView {
             leftSplitName = splitCard.getLeftHalfCard().getName();
             leftSplitCosts = splitCard.getLeftHalfCard().getManaCost();
             leftSplitRules = splitCard.getLeftHalfCard().getRules(game);
+            leftSplitTypeLine = getCardTypeLine(game, splitCard.getLeftHalfCard());
             rightSplitName = splitCard.getRightHalfCard().getName();
             rightSplitCosts = splitCard.getRightHalfCard().getManaCost();
             rightSplitRules = splitCard.getRightHalfCard().getRules(game);
+            rightSplitTypeLine = getCardTypeLine(game, splitCard.getRightHalfCard());
         }
 
         this.name = card.getImageName();
@@ -397,6 +422,35 @@ public class CardView extends SimpleCardView {
                     }
                 }
             }
+
+            // Determine what part of the art to slice out for spells on the stack which originate
+            // from a split, fuse, or aftermath split card.
+            SpellAbilityType ty = spell.getSpellAbility().getSpellAbilityType();
+            if (ty == SpellAbilityType.SPLIT_RIGHT || ty == SpellAbilityType.SPLIT_LEFT || ty == SpellAbilityType.SPLIT_FUSED) {
+                // Needs a special art rect
+                if (ty == SpellAbilityType.SPLIT_FUSED) {
+                    artRect = ArtRect.SPLIT_FUSED;
+                } else {
+                    if (spell.getCard() != null) {
+                        SplitCard wholeCard = ((SplitCardHalf) spell.getCard()).getParentCard();
+                        Abilities<Ability> aftermathHalfAbilities = wholeCard.getRightHalfCard().getAbilities();
+                        if (aftermathHalfAbilities.stream().anyMatch(ability -> ability instanceof AftermathAbility)) {
+                            if (ty == SpellAbilityType.SPLIT_RIGHT) {
+                                artRect = ArtRect.AFTERMATH_BOTTOM;
+                            } else {
+                                artRect = ArtRect.AFTERMATH_TOP;
+                            }
+                        } else {
+                            if (ty == SpellAbilityType.SPLIT_RIGHT) {
+                                artRect = ArtRect.SPLIT_RIGHT;
+                            } else {
+                                artRect = ArtRect.SPLIT_LEFT;
+                            }
+                        }
+                    }
+                }
+            }
+
             // show for modal spell, which mode was choosen
             if (spell.getSpellAbility().isModal()) {
                 for (UUID modeId : spell.getSpellAbility().getModes().getSelectedModes()) {
@@ -781,6 +835,10 @@ public class CardView extends SimpleCardView {
         return leftSplitRules;
     }
 
+    public String getLeftSplitTypeLine() {
+        return leftSplitTypeLine;
+    }
+
     public String getRightSplitName() {
         return rightSplitName;
     }
@@ -791,6 +849,14 @@ public class CardView extends SimpleCardView {
 
     public List<String> getRightSplitRules() {
         return rightSplitRules;
+    }
+
+    public String getRightSplitTypeLine() {
+        return rightSplitTypeLine;
+    }
+
+    public ArtRect getArtRect() {
+        return artRect;
     }
 
     public CardView getSecondCardFace() {
@@ -889,4 +955,70 @@ public class CardView extends SimpleCardView {
         this.canAttack = canAttack;
     }
 
+    public boolean isCreature() {
+        return cardTypes.contains(CardType.CREATURE);
+    }
+
+    public boolean isPlanesWalker() {
+        return cardTypes.contains(CardType.PLANESWALKER);
+    }
+
+    public String getColorText() {
+        if (getColor().getColorCount() == 0) return "Colorless";
+        else if (getColor().getColorCount() > 1) return "Gold";
+        else if (getColor().isBlack()) return "Black";
+        else if (getColor().isBlue()) return "Blue";
+        else if (getColor().isWhite()) return "White";
+        else if (getColor().isGreen()) return "Green";
+        else if (getColor().isRed()) return "Red";
+        return "";
+    }
+
+    public String getTypeText() {
+        StringBuilder type = new StringBuilder();
+        for (SuperType superType : getSuperTypes()) {
+            type.append(superType.toString());
+            type.append(' ');
+        }
+        for (CardType cardType : getCardTypes()) {
+            type.append(cardType.toString());
+            type.append(' ');
+        }
+        if (!getSubTypes().isEmpty()) {
+            type.append("- ");
+            for (String subType : getSubTypes()) {
+                type.append(subType);
+                type.append(' ');
+            }
+        }
+        if (type.length() > 0) {
+            // remove trailing space
+            type.deleteCharAt(type.length() - 1);
+        }
+        return type.toString();
+    }
+
+    public boolean isLand() {
+        return cardTypes.contains(CardType.LAND);
+    }
+
+    public boolean isInstant() {
+        return cardTypes.contains(CardType.INSTANT);
+    }
+
+    public boolean isSorcery() {
+        return cardTypes.contains(CardType.SORCERY);
+    }
+
+    public boolean isEnchantment() {
+        return cardTypes.contains(CardType.ENCHANTMENT);
+    }
+
+    public boolean isArtifact() {
+        return cardTypes.contains(CardType.ARTIFACT);
+    }
+
+    public boolean isTribal() {
+        return cardTypes.contains(CardType.TRIBAL);
+    }
 }

@@ -5,18 +5,21 @@
  */
 package org.mage.card.arcane;
 
+import mage.cards.ArtRect;
 import mage.client.dialog.PreferencesDialog;
 import mage.constants.AbilityType;
 import mage.constants.CardType;
 import mage.constants.SuperType;
-import mage.utils.CardUtil;
 import mage.view.CardView;
 import mage.view.CounterView;
 import mage.view.PermanentView;
 
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author stravant@gmail.com
@@ -121,20 +124,29 @@ public abstract class CardRenderer {
         this.cardView = card;
         this.isTransformed = isTransformed;
 
+        if (card.getArtRect() == ArtRect.SPLIT_FUSED) {
+            parseRules(card.getLeftSplitRules(), textboxKeywords, textboxRules);
+            parseRules(card.getRightSplitRules(), textboxKeywords, textboxRules);
+        } else {
+            parseRules(card.getRules(), textboxKeywords, textboxRules);
+        }
+    }
+
+    protected void parseRules(List<String> stringRules, ArrayList<TextboxRule> keywords, ArrayList<TextboxRule> rules) {
         // Translate the textbox text
-        for (String rule : card.getRules()) {
+        for (String rule : stringRules) {
             // Kill reminder text
             if (PreferencesDialog.getCachedValue(PreferencesDialog.KEY_CARD_RENDERING_REMINDER_TEXT, "false").equals("false")) {
                 rule = CardRendererUtils.killReminderText(rule).trim();
             }
             if (!rule.isEmpty()) {
-                TextboxRule tbRule = TextboxRuleParser.parse(card, rule);
+                TextboxRule tbRule = TextboxRuleParser.parse(cardView, rule);
                 if (tbRule.type == TextboxRuleType.SIMPLE_KEYWORD) {
-                    textboxKeywords.add(tbRule);
+                    keywords.add(tbRule);
                 } else if (tbRule.text.isEmpty()) {
                     // Nothing to do, rule is empty
                 } else {
-                    textboxRules.add(tbRule);
+                    rules.add(tbRule);
                 }
             }
         }
@@ -223,7 +235,7 @@ public abstract class CardRenderer {
 
     // Draw summoning sickness overlay, and possibly other overlays
     protected void drawOverlays(Graphics2D g) {
-        if (CardUtil.isCreature(cardView) && cardView instanceof PermanentView) {
+        if (cardView.isCreature() && cardView instanceof PermanentView) {
             if (((PermanentView) cardView).hasSummoningSickness()) {
                 int x1 = (int) (0.2 * cardWidth);
                 int x2 = (int) (0.8 * cardWidth);
@@ -251,6 +263,39 @@ public abstract class CardRenderer {
                 g.setColor(new Color(0, 0, 0, 100));
                 g.fillPolygon(xPoints2, yPoints2, 3);
             }
+        }
+    }
+
+    protected void drawArtIntoRect(Graphics2D g, int x, int y, int w, int h, Rectangle2D artRect, boolean shouldPreserveAspect) {
+        // Perform a process to make sure that the art is scaled uniformly to fill the frame, cutting
+        // off the minimum amount necessary to make it completely fill the frame without "squashing" it.
+        double fullCardImgWidth = artImage.getWidth();
+        double fullCardImgHeight = artImage.getHeight();
+        double artWidth = artRect.getWidth() * fullCardImgWidth;
+        double artHeight = artRect.getHeight() * fullCardImgHeight;
+        double targetWidth = w;
+        double targetHeight = h;
+        double targetAspect = targetWidth / targetHeight;
+        if (!shouldPreserveAspect) {
+            // No adjustment to art
+        } else if (targetAspect * artHeight < artWidth) {
+            // Trim off some width
+            artWidth = targetAspect * artHeight;
+        } else {
+            // Trim off some height
+            artHeight = artWidth / targetAspect;
+        }
+        try {
+            BufferedImage subImg
+                    = artImage.getSubimage(
+                    (int) (artRect.getX() * fullCardImgWidth), (int) (artRect.getY() * fullCardImgHeight),
+                    (int) artWidth, (int) artHeight);
+            g.drawImage(subImg,
+                    x, y,
+                    (int) targetWidth, (int) targetHeight,
+                    null);
+        } catch (RasterFormatException e) {
+            // At very small card sizes we may encounter a problem with rounding error making the rect not fit
         }
     }
 
