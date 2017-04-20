@@ -1237,7 +1237,8 @@ public abstract class PlayerImpl implements Player, Serializable {
                         continue;
                     }
                 }
-                if (((SpellAbility) ability).getSpellAbilityType() == SpellAbilityType.SPLIT) {
+                if (((SpellAbility) ability).getSpellAbilityType() == SpellAbilityType.SPLIT
+                        || ((SpellAbility) ability).getSpellAbilityType() == SpellAbilityType.SPLIT_AFTERMATH) {
                     continue;
                 }
                 useable.put(ability.getId(), (SpellAbility) ability);
@@ -1281,9 +1282,6 @@ public abstract class PlayerImpl implements Player, Serializable {
             if (Zone.GRAVEYARD == zone && canPlayCardsFromGraveyard()) {
                 for (ActivatedAbility ability : candidateAbilites.getPlayableAbilities(Zone.HAND)) {
                     if (canUse || ability.getAbilityType() == AbilityType.SPECIAL_ACTION) {
-                        if (ability.getManaCosts().isEmpty() && ability.getCosts().isEmpty() && ability instanceof SpellAbility) {
-                            continue; // You can't play spells from graveyard that have no costs
-                        }
                         if (ability.canActivate(playerId, game)) {
                             output.put(ability.getId(), ability);
                         }
@@ -1293,9 +1291,6 @@ public abstract class PlayerImpl implements Player, Serializable {
             if (zone != Zone.BATTLEFIELD && game.getContinuousEffects().asThough(object.getId(), AsThoughEffectType.PLAY_FROM_NOT_OWN_HAND_ZONE, this.getId(), game)) {
                 for (Ability ability : candidateAbilites) {
                     if (canUse || ability.getAbilityType() == AbilityType.SPECIAL_ACTION) {
-                        if (ability.getManaCosts().isEmpty() && ability.getCosts().isEmpty() && ability instanceof SpellAbility && !(Objects.equals(ability.getSourceId(), getCastSourceIdWithAlternateMana()))) {
-                            continue; // You can't play spells that have no costs, unless you can play them without paying their mana costs
-                        }
                         ability.setControllerId(this.getId());
                         if (ability instanceof ActivatedAbility && ability.getZone().match(Zone.HAND)
                                 && ((ActivatedAbility) ability).canActivate(playerId, game)) {
@@ -2453,7 +2448,7 @@ public abstract class PlayerImpl implements Player, Serializable {
             if (!copy.canActivate(playerId, game)) {
                 return false;
             }
-            if(available != null) {
+            if (available != null) {
                 game.getContinuousEffects().costModification(copy, game);
             }
 

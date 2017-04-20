@@ -30,9 +30,7 @@ package mage.cards.repository;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-
 import java.util.*;
-
 import mage.ObjectColor;
 import mage.abilities.Ability;
 import mage.abilities.SpellAbility;
@@ -106,6 +104,10 @@ public class CardInfo {
     @DatabaseField
     protected boolean splitCard;
     @DatabaseField
+    protected boolean splitCardFuse;
+    @DatabaseField
+    protected boolean splitCardAftermath;
+    @DatabaseField
     protected boolean splitCardHalf;
     @DatabaseField
     protected boolean flipCard;
@@ -131,6 +133,8 @@ public class CardInfo {
         this.convertedManaCost = card.getConvertedManaCost();
         this.rarity = card.getRarity();
         this.splitCard = card.isSplitCard();
+        this.splitCardFuse = card.getSpellAbility() != null && card.getSpellAbility().getSpellAbilityType() == SpellAbilityType.SPLIT_FUSED;
+        this.splitCardAftermath = card.getSpellAbility() != null && card.getSpellAbility().getSpellAbilityType() == SpellAbilityType.SPLIT_AFTERMATH;
 
         this.flipCard = card.isFlipCard();
         this.flipCardName = card.getFlipCardName();
@@ -314,7 +318,7 @@ public class CardInfo {
 
     public final EnumSet<SuperType> getSupertypes() {
         EnumSet<SuperType> list = EnumSet.noneOf(SuperType.class);
-        for (String type : this.types.split(SEPARATOR)) {
+        for (String type : this.supertypes.split(SEPARATOR)) {
             try {
                 list.add(SuperType.valueOf(type));
             } catch (IllegalArgumentException e) {
@@ -353,6 +357,14 @@ public class CardInfo {
 
     public boolean isSplitCard() {
         return splitCard;
+    }
+
+    public boolean isSplitFuseCard() {
+        return splitCardFuse;
+    }
+
+    public boolean isSplitAftermathCard() {
+        return splitCardAftermath;
     }
 
     public boolean isSplitCardHalf() {

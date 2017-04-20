@@ -25,40 +25,43 @@
  *  authors and should not be interpreted as representing official policies, either expressed
  *  or implied, of BetaSteward_at_googlemail.com.
  */
-package mage.cards.m;
+package mage.cards.s;
 
 import java.util.UUID;
-import mage.MageInt;
-import mage.abilities.common.EntersBattlefieldTriggeredAbility;
-import mage.abilities.effects.common.discard.DiscardEachPlayerEffect;
+import mage.abilities.common.CycleTriggeredAbility;
+import mage.abilities.costs.mana.ManaCostsImpl;
+import mage.abilities.effects.common.CreateTokenEffect;
+import mage.abilities.keyword.CyclingAbility;
 import mage.cards.CardImpl;
 import mage.cards.CardSetInfo;
 import mage.constants.CardType;
+import mage.game.permanent.token.ZombieToken;
 
 /**
  *
  * @author fireshoes
  */
-public class MiasmaMummy extends CardImpl {
+public class StirTheSands extends CardImpl {
 
-    public MiasmaMummy(UUID ownerId, CardSetInfo setInfo) {
-        super(ownerId, setInfo, new CardType[]{CardType.CREATURE}, "{1}{B}");
+    public StirTheSands(UUID ownerId, CardSetInfo setInfo) {
+        super(ownerId, setInfo, new CardType[]{CardType.SORCERY}, "{4}{B}{B}");
 
-        this.subtype.add("Zombie");
-        this.subtype.add("Jackal");
-        this.power = new MageInt(2);
-        this.toughness = new MageInt(2);
+        // Create three 2/2 black Zombie creature tokens.
+        getSpellAbility().addEffect(new CreateTokenEffect(new ZombieToken(), 3));
 
-        // When Miasma Mummy enters the battlefield, each player discards a card.
-        this.addAbility(new EntersBattlefieldTriggeredAbility(new DiscardEachPlayerEffect()));
+        // Cycling {3}{B}
+        this.addAbility(new CyclingAbility(new ManaCostsImpl("{3}{B}")));
+
+        // When you cycle Stir the Sands, create a 2/2 black Zombie creature token.
+        this.addAbility(new CycleTriggeredAbility(new CreateTokenEffect(new ZombieToken())));
     }
 
-    public MiasmaMummy(final MiasmaMummy card) {
+    public StirTheSands(final StirTheSands card) {
         super(card);
     }
 
     @Override
-    public MiasmaMummy copy() {
-        return new MiasmaMummy(this);
+    public StirTheSands copy() {
+        return new StirTheSands(this);
     }
 }
